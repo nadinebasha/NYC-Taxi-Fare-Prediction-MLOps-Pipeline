@@ -1,0 +1,33 @@
+name: NYC Taxi CI/CD
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  mlops-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
+        run: |
+          pip install flake8 pytest pytest-cov pandera mlflow
+          pip install -r requirements.txt
+
+      - name: 1. Lint (Code Style Check)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: 2. Unit Tests (Must be >= 70% coverage)
+        run: pytest --cov=src tests/ --cov-fail-under=70
+
+      - name: 3. Data Validation
+        run: python src/data/preprocess.py --validate
+
+      - name: 4. Model Validation
+        run: python src/training/train.py --validate
